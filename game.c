@@ -177,84 +177,44 @@ void gameBoard(Game *g, bool showGame) {
     FOR_EACH_ROW(i) {
         printf("\n%d|", i);
         FOR_EACH_COL(j) {
-            if (!g->revealed[i][j] && !g->flagged[i][j] && !showGame)
+            if (g->flagged[i][j] && !showGame) {
+                printf(" F");
+            } else if (!g->revealed[i][j] && !g->flagged[i][j] && !showGame) {
                 printf(" .");
-            if (g->mines[i][j] == 0 && g->revealed[i][j]) {
-                printf(" ");
-            }
-            if (g->revealed[i][j] && !showGame && g->mines[i][j] != -1){
+            } else if (g->mines[i][j] == 0 && g->revealed[i][j]) {
+                printf("  ");
+            } else if (g->revealed[i][j] && !showGame && g->mines[i][j] != -1){
                 printf(" %d", g->mines[i][j]);
+            } else if(g->revealed[i][j] && g->mines[i][j] == -1 && showGame) {
+                printf(" *");
             }
-            if (g->revealed[i][j] && !showGame && g->once == 1){
-                printf(" %d", g->mines[i][j]);
-            }
-            
-            
-            
-            // // If flagged but not lost
-            // if(g->flagged[i][j] && !showGame)
-            //     printf(" F");
-            // // If the number of mines around that plac is 0
-            // else if (g->mines[i][j] == 0) {
-            //     printf("  ");
-            // }
-            // // If not revealed and not flagged
-            // // If revaled, not flagged, didn't found mine
-            // else if (g->revealed[i][j] && !g->flagged[i][j] && g->mines[i][j] != -1 && !showGame) {
-            //     printf(" %d", g->mines[i][j]);
-            // }
-            // // If found mine
-            // else if (g->mines[i][j] == -1 && showGame)
-            //     printf(" *");
         }
     }
 }
 
 void revealMines(Game *g, int r, int c) {
-    // revealZeros(g);
-    if (r < 0 || r > 9 || c < 0 || c > 9) return; // TODO[understand]: question
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return; // TODO[understand]: question
     if (g->revealed[r][c]) return;
 
-    if (!g->revealed[r][c]) {
-        g->revealed[r][c] = !g->revealed[r][c];
+    // Reveals the current cell
+    g->revealed[r][c] = 1;
 
+    // If zero, then reveals the neigbour cells
+    // And does a recursion, which reveals all the safe blocks in the game board
+    if (g->mines[r][c] == 0) {
         int coorX[] = {-1, -1, -1, 0, 0, 1, 1, 1};
         int coorY[] = {-1, 0, 1, 1, -1, -1, 1, 0};
 
-        FOR_EACH_ROW(i) {
-            FOR_EACH_COL(j) {
-                for (int k = 0; k < 8; k++) {
-                    int dx = i + coorX[k];
-                    int dy = j + coorY[k];
-
-                    if (dx >= 0 && dx < ROWS && dy >= 0 && dy < COLS) 
-                        revealMines(g, dx, dy);
-                }
-            }
+        for (int k = 0; k < 8; k++) {
+            revealMines(g, r + coorX[k], c + coorY[k]);
         }
     }
-}
 
-void revealZeros(Game *g) {
-    int coorX[] = {-1, -1, -1, 0, 0, 1, 1, 1};
-    int coorY[] = {-1, 0, 1, 1, -1, -1, 1, 0};
-
-    FOR_EACH_ROW(i) {
-        FOR_EACH_COL(j) {
-            if (g->mines[i][j] == 0) {
-
-                for (int k = 0; k < 8; k++) {
-                    int dx = i + coorX[k];
-                    int dy = j + coorY[k];
-
-                    if (dx >= 0 && dx < ROWS && dy >= 0 && dy < COLS) {
-                        if (g->mines[dx][dy] >= 1) g->revealed[dx][dy] = 1;
-                    }
-                }
-            }
-        }
+    if (g->mines[r][c] == -1) {
+        g->gameover = 1;
+        return;
     }
-    g->once = 1;
+            
 }
 
 void toggleFlag(Game *g, int r, int c) {
