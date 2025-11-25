@@ -1,6 +1,5 @@
 /*
-
- /////////////////////// BASIC GAME MECHANISM \\\\\\\\\\\\\\\\\\\\\\\\
+ ////////////////////////////// BASIC GAME MECHANISM \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
  start-> 1.New game 
          2.Load game
@@ -9,18 +8,24 @@
 
  [DONE] place random mines -> array of mine places
 
-  a function used to calculate the numbers around a mine.
+ [DONE] a function used to calculate the numbers around a mine.
 
- display 9x9 dot matrix -> not an array it self
+ [IN PROGRESS] display 9x9 dot matrix -> not an array it self
  
- a function used to reveald places
+ [DONE] a function used to reveald places
 
- a function used to flag places
+ [DONE] a function used to flag places
  
- a function used to show the mines after the game was over
+ [NOT NEEDED] a function used to show the mines after the game was over
 
  a function to handle FILE -> save & load
 
+
+ [TODO](Improve): [DONE] If possible try to place the mines and calulate the mines 
+                  [DONE] after user has revealed the first place,
+                  [DONE] and then reveal the empty places.
+                  try to not place mine in the first reveal.
+                  try to have more safe places around the first reveal.
  */
 
 #include <stdio.h>
@@ -29,8 +34,8 @@
 #include <time.h>
 #include <windows.h>
 
-#define ROWS 9
-#define COLS 9
+#define ROWS 12
+#define COLS 12
 #define MINES 10
 
 // Macros: Making my life easier
@@ -54,15 +59,18 @@ void calculateNumbers(Game *);
 void gameBoard(Game *, bool);
 void revealMines(Game *, int, int);
 void toggleFlag(Game *, int, int);
-void revealZeros(Game *);
+void saveGame(Game *);
+int loadGame(Game *);
+bool checkWin(Game *);
 
 // For testing purpose only
 void pArray(Game *);
 
-void main() {
+int main() {
     Game g;
     int choice, r, c, action;
 
+    // So that random number are never the same each time
     srand(time(NULL));
 
     printf("\n\t|-------------MINESWEEPER-------------|\n");
@@ -74,31 +82,60 @@ void main() {
 
     if (choice > 2 || choice < 1)
         printf("\nWRONG OPTION, try again..\n");
-    else {
+    else if (choice == 2 && loadGame(&g)) {
+        printf("\nGame loaded successfully.\n");
+    } else {
         initGame(&g);
-        placeMines(&g);
-        calculateNumbers(&g);
 
-        while(!g.gameover) {
-            // system("cls");
-            gameBoard(&g, false);
+        // Counting if the openning cell has been revealed
+    }
 
-            printf("\n\nEnter row number (0-9): ");
-            scanf("%d", &r);
-            printf("\nEnter column number (0-9): ");
-            scanf("%d", &c);
+    int counter_first_reveal = 0;
+    while(!g.gameover) {
+        system("cls");
+        gameBoard(&g, false);
 
-            printf("\n1. reveal  2. Flag  3. Save & Exit");
-            printf("\nAction: ");
-            scanf("%d", &action);
+        printf("\n\nEnter row number (0-9): ");
+        scanf("%d", &r);
+        printf("\nEnter column number (0-9): ");
+        scanf("%d", &c);
 
-            if (action == 1)
-                revealMines(&g, r, c);
-            else if (action == 2)
-                toggleFlag(&g, r, c);
+        printf("\n1. reveal  2. Flag  3. Save & Exit");
+        printf("\nAction: ");
+        scanf("%d", &action);
+
+        if (action == 1 && counter_first_reveal == 0) {
+            placeMines(&g);
+            calculateNumbers(&g);
+
+            revealMines(&g, r, c);
+            counter_first_reveal++;
+        } else if (action == 1) {
+            revealMines(&g, r, c);
+        } else if (action == 2) {
+            toggleFlag(&g, r, c);
+        } else if (action == 3) {
+            saveGame(&g);
+            g.gameover = 0;
+            return 0;
+        }
+
+        if (checkWin(&g)) {
+            g.won = 1;
+            g.gameover = 1;
         }
     }
-    
+
+    printf("\n");
+    gameBoard(&g, true);
+
+    if (g.won) {
+        printf("\n\n!!Game Over!! \n Congratulations, you won the game!!");
+    } else {
+        printf("\n\n!!Game Over!! \n Sorry you lost. Try again...");
+    }
+        
+    return 0;
 }
 
 void initGame(Game *g) {
@@ -111,7 +148,6 @@ void initGame(Game *g) {
     }
     g->gameover = 0;
     g->won = 0;
-    g->once = 0;
 }
 
 void placeMines(Game *g) {
@@ -120,6 +156,7 @@ void placeMines(Game *g) {
         int r = rand() % ROWS;
         int c = rand() % COLS;
 
+        // if a mine is placed, we skip that position.
         if (g->mines[r][c] == -1) continue;
         g->mines[r][c] = -1;
         placed++;
@@ -162,31 +199,32 @@ void calculateNumbers(Game *g) {
     
 }
 
+// Display game board matrix
 void gameBoard(Game *g, bool showGame) {
-    printf("   ");
+    printf("    ");
     FOR_EACH_COL(j) {
-        printf("%d ", j);
+        printf("%02d ", j);
     }
 
     printf("\n");
-    printf("   ");
+    printf("    ");
     FOR_EACH_COL(j) {
-        printf("- ");
+        printf("-  ");
     }
 
     FOR_EACH_ROW(i) {
-        printf("\n%d|", i);
+        printf("\n\n%02d| ", i);
         FOR_EACH_COL(j) {
             if (g->flagged[i][j] && !showGame) {
-                printf(" F");
+                printf("F  ");
             } else if (!g->revealed[i][j] && !g->flagged[i][j] && !showGame) {
-                printf(" .");
-            } else if (g->mines[i][j] == 0 && g->revealed[i][j]) {
-                printf("  ");
-            } else if (g->revealed[i][j] && !showGame && g->mines[i][j] != -1){
-                printf(" %d", g->mines[i][j]);
-            } else if(g->revealed[i][j] && g->mines[i][j] == -1 && showGame) {
-                printf(" *");
+                printf(".  ");
+            } else if (g->mines[i][j] == 0) {
+                printf("   ");
+            } else if(g->mines[i][j] == -1) {
+                printf("*  ");
+            } else {
+                printf("%d  ", g->mines[i][j]);
             }
         }
     }
@@ -218,11 +256,42 @@ void revealMines(Game *g, int r, int c) {
 }
 
 void toggleFlag(Game *g, int r, int c) {
-    if (!g->flagged[r][c])
+    if (!g->revealed[r][c])
         g->flagged[r][c] = !g->flagged[r][c];
 }
 
-void loadGame() {}
+void saveGame(Game *g) {
+    FILE *f = fopen("minesweeper_save.dat", "wb");
+
+    if (f) {
+        fwrite(g, sizeof(Game), 1, f);
+        fclose(f);
+    }
+}
+
+int loadGame(Game *g) {
+    FILE *f = fopen("minesweeper_save.dat", "rb");
+
+    if (f) {
+        fread(g, sizeof(Game), 1, f);
+        fclose(f);
+        return 1;
+    }
+    return 0;
+}
+
+bool checkWin(Game *g) {
+    int count = 0;
+    FOR_EACH_ROW(i) {
+        FOR_EACH_COL(j) {
+            if (g->revealed[i][j]) count++;
+        }
+    }
+
+    if (count == ROWS * COLS - MINES) return true;
+
+    return false;
+}
 
 void pArray (Game *g) {
     printf("\n\n");
