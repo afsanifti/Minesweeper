@@ -10,7 +10,7 @@
 
  [DONE] a function used to calculate the numbers around a mine.
 
- [IN PROGRESS] display 9x9 dot matrix -> not an array it self
+ [DONE] display 9x9 dot matrix -> not an array it self
  
  [DONE] a function used to reveald places
 
@@ -24,7 +24,7 @@
  [TODO](Improve): [DONE] If possible try to place the mines and calulate the mines 
                   [DONE] after user has revealed the first place,
                   [DONE] and then reveal the empty places.
-                  try to not place mine in the first reveal.
+                  [DONE] try to not place mine in the first reveal.
                   try to have more safe places around the first reveal.
  */
 
